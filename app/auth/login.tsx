@@ -1,17 +1,18 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import {
-    Animated,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Colors from "../../constants/Colors";
 
 export default function LoginScreen() {
+  const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -54,7 +55,10 @@ export default function LoginScreen() {
       <TouchableOpacity style={styles.button1}>
         <Text style={styles.buttonText}>LOGIN</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button2}>
+      <TouchableOpacity
+        style={styles.button2}
+        onPress={() => router.push("/auth/register")}
+      >
         <Text style={styles.buttonText}>Create an acound</Text>
       </TouchableOpacity>
 
