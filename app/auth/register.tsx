@@ -29,7 +29,41 @@ export default function RegisterScreen() {
   const [planta, setPlanta] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState(""); // Para los mensajes de error
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // Errores por campo (aparecen al salir del input)
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [nombreError, setNombreError] = useState("");
+
+  // Funciones de validación
+  const validateEmail = (val: string) => {
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    setEmailError(
+      valid ? "" : "Ingresa un correo válido (debe tener @ y dominio).",
+    );
+  };
+
+  const validatePasswords = (pass: string, confirm: string) => {
+    if (confirm !== "" && pass !== confirm)
+      setPasswordError("Las contraseñas no coinciden.");
+    else setPasswordError("");
+  };
+
+  const validateNombre = (val: string) => {
+    if (/\d/.test(val)) {
+      setNombreError("El nombre no puede contener números.");
+    } else if (
+      val
+        .trim()
+        .split(" ")
+        .filter((w) => w.length > 0).length < 2
+    ) {
+      setNombreError("Ingresa nombre y apellido (al menos dos palabras).");
+    } else {
+      setNombreError("");
+    }
+  };
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -47,7 +81,10 @@ export default function RegisterScreen() {
     nombre.trim() !== "" &&
     puesto !== "" &&
     rol !== "" &&
-    planta !== "";
+    planta !== "" &&
+    emailError === "" &&
+    passwordError === "" &&
+    nombreError === "";
 
   const isFormValid = fieldsComplete && termsAccepted;
 
@@ -62,7 +99,6 @@ export default function RegisterScreen() {
       return;
     }
     setErrorMessage("");
-    // Aquí irá la navegación al siguiente paso
   };
 
   // Componente de Dropdown reutilizable
@@ -115,7 +151,7 @@ export default function RegisterScreen() {
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* HEADER: título a la izquierda, Back a la derecha */}
+      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Create account</Text>
         <TouchableOpacity onPress={() => router.back()}>
@@ -124,16 +160,19 @@ export default function RegisterScreen() {
       </View>
 
       <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-        {/* Inputs de texto simples: el placeholder ES la etiqueta */}
         <TextInput
-          style={styles.inputBox}
+          style={[styles.inputBox, emailError ? styles.inputError : null]}
           placeholder="Email"
           placeholderTextColor="#aaa"
           value={email}
           onChangeText={setEmail}
+          onBlur={() => validateEmail(email)}
           keyboardType="email-address"
           autoCapitalize="none"
         />
+        {emailError !== "" && (
+          <Text style={styles.fieldError}>{emailError}</Text>
+        )}
 
         <TextInput
           style={styles.inputBox}
@@ -145,21 +184,31 @@ export default function RegisterScreen() {
         />
 
         <TextInput
-          style={styles.inputBox}
+          style={[styles.inputBox, passwordError ? styles.inputError : null]}
           placeholder="Confirm Password"
           placeholderTextColor="#aaa"
           value={confirmPassword}
-          onChangeText={setConfirmPassword}
+          onChangeText={(val) => {
+            setConfirmPassword(val);
+            validatePasswords(password, val);
+          }}
           secureTextEntry
         />
+        {passwordError !== "" && (
+          <Text style={styles.fieldError}>{passwordError}</Text>
+        )}
 
         <TextInput
-          style={styles.inputBox}
+          style={[styles.inputBox, nombreError ? styles.inputError : null]}
           placeholder="Nombre"
           placeholderTextColor="#aaa"
           value={nombre}
           onChangeText={setNombre}
+          onBlur={() => validateNombre(nombre)}
         />
+        {nombreError !== "" && (
+          <Text style={styles.fieldError}>{nombreError}</Text>
+        )}
 
         {/* Dropdowns */}
         <Dropdown
@@ -176,7 +225,7 @@ export default function RegisterScreen() {
           field="planta"
         />
 
-        {/* TÉRMINOS - empieza desmarcado */}
+        {/* TÉRMINOS */}
         <TouchableOpacity
           style={styles.termsRow}
           onPress={() => setTermsAccepted(!termsAccepted)}
@@ -196,7 +245,7 @@ export default function RegisterScreen() {
           </View>
         )}
 
-        {/* NEXT: siempre presionable, pero valida adentro */}
+        {/* NEXT Botoncito */}
         <TouchableOpacity
           style={[styles.nextButton, !isFormValid && styles.nextButtonDisabled]}
           onPress={handleNext}
@@ -324,6 +373,15 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
     letterSpacing: 1,
+  },
+  inputError: {
+    borderBottomColor: "#FF5252", // Borde rojo en campos con error
+  },
+  fieldError: {
+    color: "#D32F2F",
+    fontSize: 11,
+    marginBottom: 6,
+    marginTop: -2,
   },
   errorBox: {
     backgroundColor: "#FFF3F3",
