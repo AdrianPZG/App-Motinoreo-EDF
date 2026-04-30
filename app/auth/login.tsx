@@ -51,17 +51,25 @@ export default function LoginScreen() {
         />
       </View>
 
-      {/* botoncitos */}
-      <TouchableOpacity style={styles.button1}>
+      {/* Botón LOGIN */}
+      <TouchableOpacity
+        style={styles.button1}
+        onPress={() => router.replace("/(drawer)/dashboard")}
+      >
         <Text style={styles.buttonText}>LOGIN</Text>
       </TouchableOpacity>
+
+      {/* REGISTRO - comentado temporalmente, descomentar cuando se implemente */}
+      {/*
       <TouchableOpacity
         style={styles.button2}
         onPress={() => router.push("/auth/register")}
       >
         <Text style={styles.buttonText}>Create an acound</Text>
       </TouchableOpacity>
+      */}
 
+      {/* Forgot Password - siempre visible */}
       <View style={styles.footerContainer}>
         <Text style={styles.footerText}>Forgot Password? </Text>
         <TouchableOpacity>
@@ -112,7 +120,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
-    marginTop: 20,
+    marginTop: 80,
     width: "40%",
     alignItems: "center",
   },
