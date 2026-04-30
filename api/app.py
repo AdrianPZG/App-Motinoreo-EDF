@@ -182,6 +182,7 @@ def grafica_meteo():
         """, cnxn)
         cnxn.close()
 
+        # Promedio de los 8 sensores (0 -> NaN para no bajar la media)
         df[poa_cols] = df[poa_cols].replace(0, pd.NA)
         df["irrad_avg"] = df[poa_cols].mean(axis=1, skipna=True).fillna(0)
 
@@ -193,6 +194,95 @@ def grafica_meteo():
             for _, row in df.iterrows()
         ]
         return jsonify({"fecha": fecha_str, "datos": datos})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# =============================================================
+# ENDPOINT: Gráfica MES - Energía por día del mes
+# GET /dashboard/grafica-mes?fecha=2026-04-30
+# =============================================================
+@app.route("/dashboard/grafica-mes", methods=["GET"])
+def grafica_mes():
+    from flask import request
+    fecha_str = request.args.get("fecha", str(date.today()))
+    fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+    mes = fecha.month
+    anio = fecha.year
+    start_hour, end_hour = DICT_GEN_HOURS.get(mes, (7, 18))
+
+    # Primer y último día del mes (sin pasar de hoy)
+    fecha_ini = date(anio, mes, 1)
+    if mes == 12:
+        fecha_fin = date(anio + 1, 1, 1) - timedelta(days=1)
+    else:
+        fecha_fin = date(anio, mes + 1, 1) - timedelta(days=1)
+    fecha_fin = min(fecha_fin, date.today())
+
+    try:
+        cnxn = get_connection()
+        df = pd.read_sql_query(f"""
+            SELECT
+                CAST(Time_Stamp AS DATE) AS dia,
+                SUM(ABS(PPC_PM_P)) / 6.0 AS energia_mwh
+            FROM Subestation_10MData
+            WHERE Time_Stamp >= '{fecha_ini} {start_hour:02}:00:00'
+              AND Time_Stamp <  '{fecha_fin} {end_hour:02}:59:59'
+              AND PPC_PM_P IS NOT NULL
+            GROUP BY CAST(Time_Stamp AS DATE)
+            ORDER BY dia ASC
+        """, cnxn)
+        cnxn.close()
+
+        datos = [
+            {
+                "dia": str(pd.to_datetime(row["dia"]).day),   # número del día (1-31)
+                "mwh": round(float(row["energia_mwh"]), 1)
+            }
+            for _, row in df.iterrows()
+        ]
+        return jsonify({"fecha": fecha_str, "datos": datos})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# =============================================================
+# ENDPOINT: Gráfica AÑO - Energía por mes del año
+# GET /dashboard/grafica-anio?fecha=2026-04-30
+# =============================================================
+@app.route("/dashboard/grafica-anio", methods=["GET"])
+def grafica_anio():
+    from flask import request
+    fecha_str = request.args.get("fecha", str(date.today()))
+    fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+    anio = fecha.year
+
+    MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
+
+    try:
+        cnxn = get_connection()
+        df = pd.read_sql_query(f"""
+            SELECT
+                DATEPART(MONTH, Time_Stamp) AS mes_num,
+                SUM(ABS(PPC_PM_P)) / 6.0   AS energia_mwh
+            FROM Subestation_10MData
+            WHERE YEAR(Time_Stamp) = {anio}
+              AND PPC_PM_P IS NOT NULL
+            GROUP BY DATEPART(MONTH, Time_Stamp)
+            ORDER BY mes_num ASC
+        """, cnxn)
+        cnxn.close()
+
+        datos = [
+            {
+                "mes": MESES[int(row["mes_num"]) - 1],
+                "mwh": round(float(row["energia_mwh"]), 1)
+            }
+            for _, row in df.iterrows()
+        ]
+        return jsonify({"anio": anio, "datos": datos})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
